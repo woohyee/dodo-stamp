@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-// 아이콘 라이브러리 (Lucide React)
+// 아이콘 컴포넌트들
 const Smartphone = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
@@ -24,8 +24,6 @@ const UserPlus = (props) => (
   </svg>
 );
 
-// 컴포넌트들
-
 // 고객 등록 폼
 const RegistrationForm = ({ onRegister }) => {
     const [name, setName] = useState('');
@@ -39,7 +37,6 @@ const RegistrationForm = ({ onRegister }) => {
             alert('개인정보 처리 방침에 동의해주세요.');
             return;
         }
-        // 실제로는 여기서 API를 호출하여 고객 정보를 서버에 저장합니다.
         const newCustomer = { 
             id: `cust_${new Date().getTime()}`, 
             name, 
@@ -84,4 +81,92 @@ const VisitSuccessMessage = ({ customer }) => {
                 <span className="text-indigo-600">{customer.name}</span>님, 환영합니다!
             </h2>
             <p className="text-gray-500 mt-2 text-lg">
-                벌써 <span className="font-bold text-3xl text-orange-500 mx-1">{customer.visits}</span>번째
+                벌써 <span className="font-bold text-3xl text-orange-500 mx-1">{customer.visits}</span>번째 방문이시네요!
+            </p>
+            <p className="mt-4 text-sm text-gray-500">방문이 성공적으로 적립되었습니다.</p>
+        </div>
+    );
+};
+
+// 고객 메인 페이지 로직
+const VisitPage = () => {
+    const [customer, setCustomer] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const storedCustomer = localStorage.getItem('nfcCustomer');
+        if (storedCustomer) {
+            const customerData = JSON.parse(storedCustomer);
+            customerData.visits += 1; 
+            localStorage.setItem('nfcCustomer', JSON.stringify(customerData));
+            setCustomer(customerData);
+        }
+        setIsLoading(false);
+    }, []);
+
+    const handleRegistration = (newCustomer) => {
+        localStorage.setItem('nfcCustomer', JSON.stringify(newCustomer));
+        setCustomer(newCustomer);
+    };
+
+    if (isLoading) {
+        return <div className="text-center text-gray-500">고객 정보를 확인하는 중...</div>;
+    }
+    
+    return customer ? (
+        <VisitSuccessMessage customer={customer} />
+    ) : (
+        <RegistrationForm onRegister={handleRegistration} />
+    );
+};
+
+// 전체 앱 (시뮬레이션 포함)
+export default function App() {
+    const [key, setKey] = useState(Date.now());
+
+    const simulateNewScan = () => {
+        localStorage.removeItem('nfcCustomer');
+        setKey(Date.now());
+    };
+    
+    const simulateExistingScan = () => {
+        const existingCustomer = localStorage.getItem('nfcCustomer');
+        if (!existingCustomer) {
+            localStorage.setItem('nfcCustomer', JSON.stringify({
+                id: 'cust_12345',
+                name: '김단골',
+                phone: '010-1111-2222',
+                email: 'loyal.customer@example.com',
+                visits: 4 
+            }));
+        }
+        setKey(Date.now());
+    };
+
+    return (
+        <div className="font-sans min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4 space-y-8">
+            <div className="w-full max-w-md p-4 bg-white rounded-2xl shadow-md">
+                <h3 className="text-lg font-bold text-center mb-4">NFC 태그 스캔 시뮬레이션</h3>
+                 <div className="flex justify-center items-center text-indigo-600 mb-4">
+                    <Smartphone className="w-8 h-8"/>
+                    <div className="font-mono text-2xl animate-pulse">&nbsp;(((•)))&nbsp;</div>
+                    <div className="w-16 h-10 bg-gray-200 rounded-md flex items-center justify-center text-sm font-semibold">NFC</div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <button onClick={simulateNewScan} className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition">
+                        신규 고객 스캔
+                    </button>
+                    <button onClick={simulateExistingScan} className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition">
+                        기존 고객 스캔
+                    </button>
+                </div>
+            </div>
+            
+            <div className="w-full max-w-md border-4 border-gray-800 rounded-3xl p-2 bg-gray-800 shadow-2xl">
+                 <div className="bg-gray-100 rounded-2xl p-4 min-h-[480px] flex items-center justify-center">
+                    <VisitPage key={key} />
+                 </div>
+            </div>
+        </div>
+    );
+}
